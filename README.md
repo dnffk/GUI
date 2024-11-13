@@ -1,4 +1,4 @@
-# Hide & Seek Multi
+# GUI Project
 
 ??
 
