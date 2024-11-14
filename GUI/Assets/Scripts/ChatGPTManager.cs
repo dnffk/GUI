@@ -2,17 +2,51 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
+using System.IO;
 
 public class ChatGPTManager : MonoBehaviour
 {
-    [SerializeField] private string openAI_API_Key = "";  // OpenAI API 키 입력
-    [SerializeField] private TMP_InputField inputField;               // 플레이어 질문 입력 필드
-    [SerializeField] private TMP_Text responseText;                   // ChatGPT 응답을 표시할 텍스트
+    [SerializeField] private string openAI_API_Key = "API";  // OpenAI API 키 입력 (기본 값)
 
-    private const string apiUrl = "https://api.openai.com/v1/chat/completions";  // ChatGPT API 엔드포인트
+    [SerializeField] private TMP_InputField inputField; // 플레이어 질문 입력 필드
+    [SerializeField] private TMP_Text responseText;    // ChatGPT 응답 표시 텍스트
+
+    private const string apiUrl = "https://api.openai.com/v1/chat/completions"; // ChatGPT API 엔드포인트
 
     // AI 성격 설정을 위한 시스템 메시지
     private const string systemMessage = "You are a friendly and helpful assistant."; // AI 성격 설정
+
+    // Unity 시작 시 호출
+    void Awake()
+    {
+        LoadApiKeyFromJson(); // JSON 파일에서 API 키 로드
+    }
+
+    // API 키를 JSON 파일에서 로드하여 변수에 저장
+    private void LoadApiKeyFromJson()
+    {
+        string configPath = Path.Combine(Application.dataPath, "JSON/config.json"); // JSON 파일 경로
+
+        if (File.Exists(configPath))
+        {
+            try
+            {
+                // JSON 파일 읽기
+                string jsonContent = File.ReadAllText(configPath);
+                Config config = JsonUtility.FromJson<Config>(jsonContent); // JSON 데이터 파싱
+                openAI_API_Key = config.apiKey; // API 키를 설정
+                Debug.Log("API Key successfully loaded from JSON: " + openAI_API_Key);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Failed to load API key from config.json: " + e.Message);
+            }
+        }
+        else
+        {
+            Debug.LogError("config.json file not found at: " + configPath);
+        }
+    }
 
     // 버튼 클릭 시 호출할 메서드
     public void SendQuestion()
@@ -27,7 +61,7 @@ public class ChatGPTManager : MonoBehaviour
     // ChatGPT API 요청 메서드
     private IEnumerator SendChatGPTRequest(string prompt)
     {
-        // 요청할 JSON 데이터를 문자열로 생성, systemMessage 추가
+        // 요청할 JSON 데이터를 문자열로 생성
         string requestData = "{ \"model\": \"gpt-4-turbo\", \"messages\": [" +
                              "{ \"role\": \"system\", \"content\": \"" + systemMessage + "\" }, " +
                              "{ \"role\": \"user\", \"content\": \"" + prompt + "\" }] }";
@@ -61,9 +95,17 @@ public class ChatGPTManager : MonoBehaviour
             else
             {
                 responseText.text = "에러: " + request.error;
+                Debug.LogError("Request failed: " + request.downloadHandler.text);
             }
         }
     }
+}
+
+// JSON 파일의 구조를 정의하는 클래스
+[System.Serializable]
+public class Config
+{
+    public string apiKey;
 }
 
 // JSON 응답 데이터 구조 클래스
